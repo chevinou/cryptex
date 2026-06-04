@@ -4,7 +4,7 @@
 
 # Fichier de config avec secrets — NE JAMAIS commiter
 .env
-config.php.local
+config.php
 
 # Données SQLite
 data/cryptex.db

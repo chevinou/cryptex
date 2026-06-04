@@ -212,6 +212,32 @@ ALTER TABLE `secret_files`
 --
 ALTER TABLE `secret_recipients`
   ADD CONSTRAINT `secret_recipients_ibfk_1` FOREIGN KEY (`secret_id`) REFERENCES `secrets` (`id`) ON DELETE CASCADE;
+
+CREATE TABLE IF NOT EXISTS `local_users` (
+  `id`            int(11) NOT NULL AUTO_INCREMENT,
+  `login`         varchar(100) NOT NULL COMMENT 'Identifiant de connexion',
+  `password_hash` varchar(255) NOT NULL COMMENT 'bcrypt — jamais en clair',
+  `email`         varchar(200) NOT NULL,
+  `nom`           varchar(100) DEFAULT NULL,
+  `prenom`        varchar(100) DEFAULT NULL,
+  `service`       varchar(200) DEFAULT NULL,
+  `poste`         varchar(200) DEFAULT NULL,
+  `site`          varchar(200) DEFAULT NULL,
+  `telephone`     varchar(50)  DEFAULT NULL,
+  `active`        tinyint(1) NOT NULL DEFAULT 1,
+  `created_at`    datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at`    datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Comptes locaux Cryptex (mode AUTH_LOCAL)';
+
+ALTER TABLE `local_users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `login` (`login`),
+  ADD UNIQUE KEY `email` (`email`);
+
+ALTER TABLE `local_users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

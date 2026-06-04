@@ -1,0 +1,155 @@
+# ============================================================
+#  CRYPTEX — Docker Compose
+#
+#  Deux profils :
+#    • sqlite  (défaut) : app seule, BDD SQLite embarquée
+#    • mysql             : app + MariaDB + PHPMyAdmin optionnel
+#
+#  Lancement rapide (SQLite) :
+#    cp .env.example .env && docker compose up -d
+#
+#  Lancement avec MySQL :
+#    cp .env.example .env   # puis éditer .env
+#    docker compose --profile mysql up -d
+# ============================================================
+
+services:
+
+  # ── Application Cryptex ────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cryptex_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      # Données persistantes (BDD SQLite + fichiers chiffrés)
+      - cryptex_data:/var/www/html/data
+    environment:
+      # ── Auth ─────────────────────────────────────────────
+      CRYPTEX_AUTH_SSO:     ${AUTH_SSO:-true}
+      CRYPTEX_AUTH_LDAP:    ${AUTH_LDAP:-false}
+      CRYPTEX_AUTH_LOCAL:   ${AUTH_LOCAL:-false}
+      CRYPTEX_AUTH_DEFAULT: ${AUTH_DEFAULT:-sso}
+
+      # ── SSO ───────────────────────────────────────────────
+      CRYPTEX_SSO_URL:      ${SSO_URL:-https://sso.example.com/saml/index.php}
+      CRYPTEX_SSO_LOGOUT:   ${SSO_LOGOUT:-https://sso.example.com/saml/logoutSSO.php}
+
+      # ── LDAP ─────────────────────────────────────────────
+      CRYPTEX_LDAP_HOST:      ${LDAP_HOST:-ldap://ad.example.com}
+      CRYPTEX_LDAP_PORT:      ${LDAP_PORT:-389}
+      CRYPTEX_LDAP_BASE_DN:   ${LDAP_BASE_DN:-DC=example,DC=com}
+      CRYPTEX_LDAP_BIND_USER: ${LDAP_BIND_USER:-}
+      CRYPTEX_LDAP_BIND_PASS: ${LDAP_BIND_PASS:-}
+      CRYPTEX_LDAP_DOMAIN:    ${LDAP_DOMAIN:-example.com}
+      CRYPTEX_LDAP_SEARCH:    ${LDAP_SEARCH:-true}
+
+      # ── Base de données ───────────────────────────────────
+      CRYPTEX_DB_DRIVER: ${DB_DRIVER:-sqlite}
+      CRYPTEX_DB_HOST:   db
+      CRYPTEX_DB_PORT:   3306
+      CRYPTEX_DB_NAME:   ${DB_NAME:-cryptex}
+      CRYPTEX_DB_USER:   ${DB_USER:-cryptex}
+      CRYPTEX_DB_PASS:   ${DB_PASS:-changeme}
+
+      # ── Sécurité ─────────────────────────────────────────
+      CRYPTEX_ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Définissez ENCRYPTION_KEY dans .env}
+
+      # ── Application ───────────────────────────────────────
+      CRYPTEX_APP_NAME: ${APP_NAME:-Cryptex}
+      CRYPTEX_APP_URL:  ${APP_URL:-http://localhost:8080}
+
+      # ── Mail ─────────────────────────────────────────────
+      CRYPTEX_MAIL_HOST:      ${MAIL_HOST:-smtp.example.com}
+      CRYPTEX_MAIL_PORT:      ${MAIL_PORT:-25}
+      CRYPTEX_MAIL_FROM:      ${MAIL_FROM:-cryptex@example.com}
+      CRYPTEX_MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Cryptex}
+      CRYPTEX_MAIL_AUTH:      ${MAIL_AUTH:-false}
+      CRYPTEX_MAIL_USER:      ${MAIL_USER:-}
+      CRYPTEX_MAIL_PASS:      ${MAIL_PASS:-}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: [mysql]
+
+  # Version SQLite (sans MySQL) — profil par défaut
+  app-sqlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cryptex_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - cryptex_data:/var/www/html/data
+    environment:
+      CRYPTEX_AUTH_SSO:       ${AUTH_SSO:-true}
+      CRYPTEX_AUTH_LDAP:      ${AUTH_LDAP:-false}
+      CRYPTEX_AUTH_LOCAL:     ${AUTH_LOCAL:-false}
+      CRYPTEX_AUTH_DEFAULT:   ${AUTH_DEFAULT:-sso}
+      CRYPTEX_SSO_URL:        ${SSO_URL:-https://sso.example.com/saml/index.php}
+      CRYPTEX_SSO_LOGOUT:     ${SSO_LOGOUT:-https://sso.example.com/saml/logoutSSO.php}
+      CRYPTEX_LDAP_HOST:      ${LDAP_HOST:-ldap://ad.example.com}
+      CRYPTEX_LDAP_PORT:      ${LDAP_PORT:-389}
+      CRYPTEX_LDAP_BASE_DN:   ${LDAP_BASE_DN:-DC=example,DC=com}
+      CRYPTEX_LDAP_BIND_USER: ${LDAP_BIND_USER:-}
+      CRYPTEX_LDAP_BIND_PASS: ${LDAP_BIND_PASS:-}
+      CRYPTEX_LDAP_DOMAIN:    ${LDAP_DOMAIN:-example.com}
+      CRYPTEX_LDAP_SEARCH:    ${LDAP_SEARCH:-true}
+      CRYPTEX_DB_DRIVER:      sqlite
+      CRYPTEX_ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Définissez ENCRYPTION_KEY dans .env}
+      CRYPTEX_APP_NAME:       ${APP_NAME:-Cryptex}
+      CRYPTEX_APP_URL:        ${APP_URL:-http://localhost:8080}
+      CRYPTEX_MAIL_HOST:      ${MAIL_HOST:-smtp.example.com}
+      CRYPTEX_MAIL_PORT:      ${MAIL_PORT:-25}
+      CRYPTEX_MAIL_FROM:      ${MAIL_FROM:-cryptex@example.com}
+      CRYPTEX_MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Cryptex}
+      CRYPTEX_MAIL_AUTH:      ${MAIL_AUTH:-false}
+      CRYPTEX_MAIL_USER:      ${MAIL_USER:-}
+      CRYPTEX_MAIL_PASS:      ${MAIL_PASS:-}
+
+  # ── Base de données MariaDB (profil mysql) ─────────────────
+  db:
+    image: mariadb:11
+    container_name: cryptex_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootsecret}
+      MARIADB_DATABASE:      ${DB_NAME:-cryptex}
+      MARIADB_USER:          ${DB_USER:-cryptex}
+      MARIADB_PASSWORD:      ${DB_PASS:-changeme}
+    volumes:
+      - cryptex_db:/var/lib/mysql
+      - ./cryptex.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles: [mysql]
+
+  # ── PHPMyAdmin (optionnel, profil debug) ───────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: cryptex_pma
+    restart: unless-stopped
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER:-cryptex}
+      PMA_PASSWORD: ${DB_PASS:-changeme}
+    depends_on:
+      - db
+    profiles: [debug]
+
+volumes:
+  cryptex_data:
+    driver: local
+  cryptex_db:
+    driver: local

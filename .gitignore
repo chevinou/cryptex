@@ -1,0 +1,31 @@
+# ============================================================
+#  CRYPTEX — .gitignore
+# ============================================================
+
+# Fichier de config avec secrets — NE JAMAIS commiter
+.env
+config.php.local
+
+# Données SQLite
+data/cryptex.db
+data/*.db
+data/files/
+
+# Logs
+*.log
+logs/
+
+# Dépendances et build
+vendor/
+node_modules/
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker volumes locaux
+docker/volumes/

@@ -1,0 +1,21 @@
+# ============================================================
+#  CRYPTEX — .htaccess simplifié (WAMP / réseau local)
+# ============================================================
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloquer l'accès direct à la base SQLite
+    RewriteRule ^data/cryptex\.db$  - [F,L]
+</IfModule>
+
+# Bloquer l'accès aux fichiers sensibles uniquement
+<FilesMatch "^(config\.php|cron\.php)$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(db|sqlite|sqlite3|log|sql)$">
+    Require all denied
+</FilesMatch>

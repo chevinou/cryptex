@@ -1,0 +1,24 @@
+<?php
+// ============================================================
+//  CRYPTEX — Configuration du module SSO
+//
+//  Ce fichier est inclus par SSO/authSSO.php et SSO/barSSO.php.
+//  Les valeurs sont lues depuis config.php (constants définies
+//  avant l'inclusion de ce fichier) afin d'éviter toute
+//  duplication de configuration.
+//
+//  Si vous n'utilisez pas SSO (AUTH_SSO_ENABLED = false dans
+//  config.php), ce fichier est ignoré.
+// ============================================================
+
+// URL de redirection vers le portail SSO
+$linkSSO    = defined('SSO_URL')    ? SSO_URL    : 'https://sso.example.com/saml/index.php';
+
+// URL de déconnexion SSO
+$linkLogout = defined('SSO_LOGOUT') ? SSO_LOGOUT : 'https://sso.example.com/saml/logoutSSO.php';
+
+// Nom de l'application tel qu'il apparaît dans le portail SSO
+$appliName  = defined('APP_NAME')   ? APP_NAME   : 'Cryptex';
+
+// Page de destination après authentification SSO réussie
+$linkto     = '../index.php';

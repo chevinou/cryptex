@@ -1,0 +1,2 @@
+# Bloquer tout accès HTTP à ce répertoire (base SQLite)
+Require all denied

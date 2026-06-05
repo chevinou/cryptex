@@ -10,10 +10,12 @@ LABEL maintainer="Cryptex contributors"
 LABEL description="Cryptex — Transmission sécurisée d'informations confidentielles"
 
 # ── Extensions PHP ────────────────────────────────────────────
+# libsqlite3-dev est requis pour compiler pdo_sqlite
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libldap2-dev \
         libssl-dev \
         libzip-dev \
+        libsqlite3-dev \
         unzip \
         cron \
     && docker-php-ext-configure ldap \
@@ -21,14 +23,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ldap \
         pdo \
         pdo_mysql \
+        pdo_sqlite \
         zip \
         opcache \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
-
-# SQLite via pdo_sqlite (inclus nativement dans PHP — on s'assure que c'est là)
-RUN docker-php-ext-install pdo_sqlite
 
 # ── Apache ────────────────────────────────────────────────────
 RUN a2enmod rewrite headers expires ssl

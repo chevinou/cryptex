@@ -50,13 +50,14 @@ RUN mkdir -p data/files \
 VOLUME ["/var/www/html/data"]
 EXPOSE 80 443
 
-# ── Entrypoint inline (évite les problèmes de CRLF Windows) ──
-# Si config.php est absent (déploiement Docker pur), on le génère
-# depuis config.php.example — les vraies valeurs viennent des
-# variables d'environnement lues par les fonctions env() du config.
+# ── Entrypoint inline ─────────────────────────────────────────
 RUN printf '#!/bin/sh\n\
+# Corriger les droits sur le volume (monté après le build)\n\
 mkdir -p /var/www/html/data/files\n\
 chown -R www-data:www-data /var/www/html/data\n\
+chmod 750 /var/www/html/data\n\
+chmod 750 /var/www/html/data/files\n\
+# Créer config.php si absent\n\
 if [ ! -f /var/www/html/config.php ]; then\n\
   cp /var/www/html/config.php.example /var/www/html/config.php\n\
   chown www-data:www-data /var/www/html/config.php\n\

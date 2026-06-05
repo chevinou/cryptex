@@ -44,7 +44,6 @@ COPY . .
 RUN mkdir -p data/files \
     && chown -R www-data:www-data /var/www/html \
     && chmod 750 /var/www/html/data \
-    && [ -f /var/www/html/config.php ] && chmod 640 /var/www/html/config.php || true \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html/data -type d -exec chmod 750 {} \;
 
@@ -52,7 +51,19 @@ VOLUME ["/var/www/html/data"]
 EXPOSE 80 443
 
 # ── Entrypoint inline (évite les problèmes de CRLF Windows) ──
-RUN printf '#!/bin/sh\nmkdir -p /var/www/html/data/files\nchown -R www-data:www-data /var/www/html/data\nservice cron start\nexec "$@"\n' > /entrypoint.sh \
+# Si config.php est absent (déploiement Docker pur), on le génère
+# depuis config.php.example — les vraies valeurs viennent des
+# variables d'environnement lues par les fonctions env() du config.
+RUN printf '#!/bin/sh\n\
+mkdir -p /var/www/html/data/files\n\
+chown -R www-data:www-data /var/www/html/data\n\
+if [ ! -f /var/www/html/config.php ]; then\n\
+  cp /var/www/html/config.php.example /var/www/html/config.php\n\
+  chown www-data:www-data /var/www/html/config.php\n\
+  chmod 640 /var/www/html/config.php\n\
+fi\n\
+service cron start\n\
+exec "$@"\n' > /entrypoint.sh \
     && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

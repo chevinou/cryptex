@@ -92,7 +92,7 @@ cryptex/
 ### 1. Cloner et configurer
 
 ```bash
-git clone https://github.com/votre-org/cryptex.git
+git clone https://github.com/chevinou/cryptex.git
 cd cryptex
 cp .env.example .env
 ```

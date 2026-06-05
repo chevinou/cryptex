@@ -286,6 +286,24 @@ function initSchema(PDO $db): void {
             created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (secret_id) REFERENCES secrets(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS local_users (
+            id            INT AUTO_INCREMENT PRIMARY KEY,
+            login         VARCHAR(100) UNIQUE NOT NULL  COMMENT 'Identifiant de connexion',
+            password_hash VARCHAR(255) NOT NULL          COMMENT 'bcrypt',
+            email         VARCHAR(200) UNIQUE NOT NULL,
+            nom           VARCHAR(100),
+            prenom        VARCHAR(100),
+            service       VARCHAR(200),
+            poste         VARCHAR(200),
+            site          VARCHAR(200),
+            telephone     VARCHAR(50),
+            active        TINYINT(1) NOT NULL DEFAULT 1,
+            role          ENUM('admin','user','blocked') NOT NULL DEFAULT 'user',
+            created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+          COMMENT='Comptes locaux Cryptex (mode AUTH_LOCAL)';
         ");
     } else {
         // SQLite
@@ -353,13 +371,30 @@ function initSchema(PDO $db): void {
             created_at          TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY (secret_id) REFERENCES secrets(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS local_users (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            login         TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email         TEXT UNIQUE NOT NULL,
+            nom           TEXT,
+            prenom        TEXT,
+            service       TEXT,
+            poste         TEXT,
+            site          TEXT,
+            telephone     TEXT,
+            active        INTEGER NOT NULL DEFAULT 1,
+            role          TEXT NOT NULL DEFAULT 'user',
+            created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+        );
         ");
     }
 }
 
 // ── Utilisateurs ──────────────────────────────────────────────
 
-function registerOrUpdateUser(array $ssoData): array {
+function registerOrUpdateUser(array $ssoData, string $method = 'sso'): array {
     $db    = getDB();
     $email = strtolower(trim($ssoData['email']));
     $login = strtolower(trim($ssoData['samaccountname'] ?? $email));
@@ -402,13 +437,14 @@ function registerOrUpdateUser(array $ssoData): array {
             (samaccountname, email, nom, prenom, service, poste, site, telephone,
              role, source, first_login, last_login)
         VALUES (:login,:email,:nom,:prenom,:service,:poste,:site,:tel,
-                'user','sso',$n,$n)
+                'user',:method,$n,$n)
     ");
     $ins->execute([
         ':login' => $login, ':email' => $email,
         ':nom' => $ssoData['nom'], ':prenom' => $ssoData['prenom'],
         ':service' => $ssoData['service'], ':poste' => $ssoData['poste'],
         ':site' => $ssoData['site'] ?? null, ':tel' => $ssoData['telephone'] ?? null,
+        ':method' => $method,
     ]);
     return getUserByEmail($email);
 }
@@ -838,4 +874,66 @@ function purgeExpiredFiles(): int {
         }
     }
     return $deleted;
+}
+
+// ============================================================
+//  Comptes locaux (mode AUTH_LOCAL)
+// ============================================================
+
+function createLocalUser(array $data): bool {
+    $db   = getDB();
+    $hash = password_hash($data['password'], PASSWORD_BCRYPT);
+    try {
+        $db->prepare("
+            INSERT INTO local_users
+                (login, password_hash, email, nom, prenom, service, poste, site, telephone)
+            VALUES
+                (:login, :hash, :email, :nom, :prenom, :service, :poste, :site, :tel)
+        ")->execute([
+            ':login'   => strtolower(trim($data['login'])),
+            ':hash'    => $hash,
+            ':email'   => strtolower(trim($data['email'])),
+            ':nom'     => $data['nom']       ?? '',
+            ':prenom'  => $data['prenom']    ?? '',
+            ':service' => $data['service']   ?? '',
+            ':poste'   => $data['poste']     ?? '',
+            ':site'    => $data['site']      ?? '',
+            ':tel'     => $data['telephone'] ?? '',
+        ]);
+        return true;
+    } catch (Throwable $e) {
+        error_log('[Cryptex] createLocalUser: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function updateLocalUserPassword(int $id, string $newPassword): bool {
+    $db   = getDB();
+    $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+    $n    = now();
+    $stmt = $db->prepare("UPDATE local_users SET password_hash=:h, updated_at=$n WHERE id=:id");
+    $stmt->execute([':h' => $hash, ':id' => $id]);
+    return $stmt->rowCount() > 0;
+}
+
+function setLocalUserActive(int $id, bool $active): bool {
+    $db   = getDB();
+    $n    = now();
+    $stmt = $db->prepare("UPDATE local_users SET active=:a, updated_at=$n WHERE id=:id");
+    $stmt->execute([':a' => $active ? 1 : 0, ':id' => $id]);
+    return $stmt->rowCount() > 0;
+}
+
+function setLocalUserRole(int $id, string $role): bool {
+    $db   = getDB();
+    $n    = now();
+    $stmt = $db->prepare("UPDATE local_users SET role=:r, updated_at=$n WHERE id=:id");
+    $stmt->execute([':r' => $role, ':id' => $id]);
+    return $stmt->rowCount() > 0;
+}
+
+function getAllLocalUsers(): array {
+    return getDB()
+        ->query("SELECT id, login, email, nom, prenom, service, poste, role, active, created_at FROM local_users ORDER BY nom, prenom")
+        ->fetchAll();
 }

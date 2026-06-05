@@ -46,10 +46,13 @@ RUN echo "0 * * * * www-data php /var/www/html/cron.php >> /var/log/cryptex-cron
 WORKDIR /var/www/html
 COPY . .
 
-# Droits
+# Créer les dossiers de données si absents
+RUN mkdir -p data/files
+
+# Droits — config.php est optionnel (absent du repo Git, présent en prod)
 RUN chown -R www-data:www-data /var/www/html \
     && chmod 750 /var/www/html/data \
-    && chmod -R 640 /var/www/html/config.php \
+    && [ -f /var/www/html/config.php ] && chmod 640 /var/www/html/config.php || true \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html/data -type d -exec chmod 750 {} \;
 

@@ -15,6 +15,13 @@ if (!empty($_SESSION['authenticated'])) {
     exit;
 }
 
+// ── Traitement du POST (login LDAP ou local) ──────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['auth_mode'])) {
+    handlePostLogin();
+    // handlePostLogin() redirige en cas de succès ou d'échec — on n'arrive jamais ici
+    exit;
+}
+
 $error    = htmlspecialchars($_GET['error'] ?? '');
 $redirect = htmlspecialchars($_GET['redirect'] ?? 'index.php');
 

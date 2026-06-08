@@ -111,6 +111,23 @@ AUTH_SSO=true     # ou false si vous n'avez pas de SSO
 docker compose up -d
 ```
 
+### Creer un utilisateur
+
+docker exec -it cryptex_app php -r "
+require '/var/www/html/config.php';
+require '/var/www/html/includes/db.php';
+createLocalUser([
+    'login'    => 'admin',
+    'password' => 'MotDePasseTest123!',
+    'email'    => 'admin@exemple.fr',
+    'nom'      => 'Dupont',
+    'prenom'   => 'Jean',
+    'service'  => 'Informatique',
+    'poste'    => 'Administrateur',
+]);
+echo 'Utilisateur créé avec succès.' . PHP_EOL;
+"
+
 Cryptex est disponible sur [http://localhost:8080](http://localhost:8080).
 
 ### 3. Lancer avec MySQL/MariaDB

@@ -112,7 +112,7 @@ docker compose up -d
 ```
 
 ### Creer un utilisateur
-
+```bash
 docker exec -it cryptex_app php -r "
 require '/var/www/html/config.php';
 require '/var/www/html/includes/db.php';
@@ -127,7 +127,7 @@ createLocalUser([
 ]);
 echo 'Utilisateur créé avec succès.' . PHP_EOL;
 "
-
+```
 Cryptex est disponible sur [http://localhost:8080](http://localhost:8080).
 
 ### 3. Lancer avec MySQL/MariaDB
